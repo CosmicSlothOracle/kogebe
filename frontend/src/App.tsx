@@ -13,7 +13,16 @@ const App: React.FC = () => {
       try {
         const res = await fetch('/api/events');
         const json = await res.json();
-        setEvents(json.events);
+        // API is expected to return { events: Event[] } but guard against other shapes
+        if (Array.isArray(json?.events)) {
+          setEvents(json.events);
+        } else if (Array.isArray(json)) {
+          // Some environments might return the array directly
+          setEvents(json as Event[]);
+        } else {
+          // Fallback to empty list to avoid runtime errors
+          setEvents([]);
+        }
       } catch (err) {
         console.error('Failed to load events', err);
       }
