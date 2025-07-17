@@ -43,6 +43,9 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 PARTICIPANTS_FILE = os.path.join(BASE_DIR, 'participants.json')
 
+# --- New Events file constant ---
+EVENTS_FILE = os.path.join(BASE_DIR, 'events.json')
+
 logger.info(f'Base directory: {BASE_DIR}')
 logger.info(f'Upload folder: {UPLOAD_FOLDER}')
 
@@ -56,6 +59,12 @@ if not os.path.exists(UPLOAD_FOLDER):
 if not os.path.exists(PARTICIPANTS_FILE):
     with open(PARTICIPANTS_FILE, 'w', encoding='utf-8') as f:
         json.dump([], f)
+
+# Ensure events file exists
+if not os.path.exists(EVENTS_FILE):
+    with open(EVENTS_FILE, 'w', encoding='utf-8') as f:
+        json.dump([], f)
+
 
 # Add debug logging for participants file
 logger.info(f'Participants file path: {PARTICIPANTS_FILE}')
@@ -178,6 +187,167 @@ def load_participants():
 def save_participants(participants):
     with open(PARTICIPANTS_FILE, 'w', encoding='utf-8') as f:
         json.dump(participants, f, ensure_ascii=False, indent=2)
+
+
+# -------------------- Helper functions for events --------------------
+
+def load_events():
+    if not os.path.exists(EVENTS_FILE):
+        return []
+    with open(EVENTS_FILE, 'r', encoding='utf-8') as f:
+        try:
+            return json.load(f)
+        except Exception:
+            return []
+
+
+def save_events(events):
+    with open(EVENTS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(events, f, ensure_ascii=False, indent=2)
+
+
+def get_next_event_id(events):
+    if not events:
+        return 1
+    return max(event.get('id', 0) for event in events) + 1
+
+
+# -------------------- Event Endpoints --------------------
+
+@app.route('/api/events', methods=['GET'])
+def list_events():
+    """Public endpoint: return list of events."""
+    events = load_events()
+    return jsonify({'events': events}), 200
+
+
+@app.route('/api/events', methods=['POST'])
+@auth_required
+def create_event():
+    """Admin: create a new event. Expected JSON: {title, banner_url}"""
+    data = request.get_json()
+    title = data.get('title')
+    banner_url = data.get('banner_url')
+
+    if not title or not banner_url:
+        return jsonify({'error': 'title and banner_url are required'}), 400
+
+    events = load_events()
+    event_id = get_next_event_id(events)
+    new_event = {
+        'id': event_id,
+        'title': title,
+        'banner_url': banner_url,
+        'created_at': datetime.utcnow().isoformat(),
+        'participants': []
+    }
+    events.append(new_event)
+    save_events(events)
+    return jsonify({'event': new_event}), 201
+
+
+@app.route('/api/events/<int:event_id>', methods=['PUT'])
+@auth_required
+def update_event(event_id):
+    """Admin: update title or banner of an event."""
+    events = load_events()
+    event = next((e for e in events if e.get('id') == event_id), None)
+    if not event:
+        return jsonify({'error': 'Event not found'}), 404
+
+    data = request.get_json()
+    title = data.get('title')
+    banner_url = data.get('banner_url')
+    if title:
+        event['title'] = title
+    if banner_url:
+        event['banner_url'] = banner_url
+    event['updated_at'] = datetime.utcnow().isoformat()
+    save_events(events)
+    return jsonify({'event': event}), 200
+
+
+@app.route('/api/events/<int:event_id>', methods=['DELETE'])
+@auth_required
+def delete_event(event_id):
+    events = load_events()
+    new_events = [e for e in events if e.get('id') != event_id]
+    if len(new_events) == len(events):
+        return jsonify({'error': 'Event not found'}), 404
+    save_events(new_events)
+    return jsonify({'success': True}), 200
+
+
+# -------------------- Participant per Event --------------------
+
+@app.route('/api/events/<int:event_id>/participants', methods=['POST'])
+def add_event_participant(event_id):
+    events = load_events()
+    event = next((e for e in events if e.get('id') == event_id), None)
+    if not event:
+        return jsonify({'error': 'Event not found'}), 404
+
+    data = request.get_json()
+    name = data.get('name')
+    email = data.get('email')
+    message = data.get('message')
+
+    if not all([name, email]):
+        return jsonify({'error': 'name and email are required'}), 400
+
+    participant = {
+        'name': name,
+        'email': email,
+        'message': message,
+        'timestamp': datetime.utcnow().isoformat()
+    }
+    event.setdefault('participants', []).append(participant)
+    save_events(events)
+    return jsonify({'success': True, 'participant': participant}), 201
+
+
+@app.route('/api/events/<int:event_id>/participants', methods=['GET'])
+@auth_required
+def list_event_participants(event_id):
+    events = load_events()
+    event = next((e for e in events if e.get('id') == event_id), None)
+    if not event:
+        return jsonify({'error': 'Event not found'}), 404
+    return jsonify({'participants': event.get('participants', [])}), 200
+
+
+# -------------------- Export Endpoint --------------------
+
+@app.route('/api/events/<int:event_id>/export')
+@auth_required
+def export_event(event_id):
+    fmt = request.args.get('fmt', 'json').lower()
+    events = load_events()
+    event = next((e for e in events if e.get('id') == event_id), None)
+    if not event:
+        return jsonify({'error': 'Event not found'}), 404
+
+    participants = event.get('participants', [])
+
+    if fmt == 'csv':
+        # Generate CSV data
+        import csv
+        from io import StringIO
+        si = StringIO()
+        writer = csv.writer(si)
+        writer.writerow(['Event ID', 'Title', 'Name',
+                        'Email', 'Message', 'Timestamp'])
+        for p in participants:
+            writer.writerow([event_id, event['title'], p['name'],
+                            p['email'], p.get('message', ''), p['timestamp']])
+        output = si.getvalue()
+        response = make_response(output)
+        response.headers['Content-Disposition'] = f'attachment; filename=event_{event_id}.csv'
+        response.headers['Content-Type'] = 'text/csv'
+        return response
+    else:
+        # Default JSON output
+        return jsonify({'event_id': event_id, 'title': event['title'], 'participants': participants}), 200
 
 
 @app.route('/api/health', methods=['GET'])

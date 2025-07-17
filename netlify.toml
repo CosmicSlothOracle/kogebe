@@ -1,6 +1,8 @@
 [build]
-  command = "npm --prefix netlify/functions install && python scripts/generate_chatbot_key.py && python scripts/inject_chatbot_script.py"
-  publish = "docs"
+  # Install Netlify Functions deps, then build React frontend (Vite)
+  command = "npm --prefix netlify/functions install && python scripts/generate_chatbot_key.py && python scripts/inject_chatbot_script.py && npm --prefix frontend install && npm --prefix frontend run build"
+  # Serve the compiled SPA from Vite build output
+  publish = "frontend/public"
 
 [functions]
   directory = "netlify/functions"
@@ -22,6 +24,11 @@
 [[redirects]]
   from = "/api/banners"
   to = "/.netlify/functions/banners"
+  status = 200
+
+[[redirects]]
+  from = "/api/events*"
+  to = "/.netlify/functions/events/:splat"
   status = 200
 
 # Keep SPA redirect last
