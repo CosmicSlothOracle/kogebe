@@ -109,13 +109,18 @@ async function exportEvent(id, fmt) {
 
 exports.handler = async (event, context) => {
   const method = event.httpMethod;
-  const pathParts = event.path.split("/").filter(Boolean); // ["api", "events", ...]
-  const hasId = pathParts.length >= 3 ? pathParts[2] : null;
-  const id = hasId && !isNaN(Number(hasId)) ? hasId : hasId; // keep uuid string
+  const pathParts = event.path.split("/").filter(Boolean); // e.g. ['.netlify','functions','events',':id', 'participants']
+
+  // Find the index of the keyword 'events' (should always exist because of redirect)
+  const eventsIdx = pathParts.indexOf("events");
+  const hasId = eventsIdx !== -1 && pathParts.length > eventsIdx + 1 ? pathParts[eventsIdx + 1] : null;
+  const id = hasId; // keep uuid string even if not numeric
+
+  // Determine sub-resource (participants | export) if present
+  const subResource = hasId && pathParts.length > eventsIdx + 2 ? pathParts[eventsIdx + 2] : null;
 
   // Handle /api/events/:id/participants & export first
-  if (hasId && pathParts.length >= 4) {
-    const subResource = pathParts[3];
+  if (hasId && subResource) {
     if (subResource === "participants") {
       if (method === "POST") return addParticipant(id, event);
       if (method === "GET") return authRequired(() => listParticipants(id))(event, context);
