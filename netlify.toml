@@ -1,8 +1,8 @@
 [build]
-  # Install Netlify Functions deps, then build React frontend (Vite)
-  command = "npm --prefix netlify/functions install && python scripts/generate_chatbot_key.py && python scripts/inject_chatbot_script.py && npm --prefix frontend install && npm --prefix frontend run build"
-  # Serve the compiled SPA from Vite build output
-  publish = "frontend/public"
+  # Install Netlify Functions deps and helper scripts (no React build)
+  command = "npm --prefix netlify/functions install && python scripts/generate_chatbot_key.py && python scripts/inject_chatbot_script.py"
+  # Serve static site from docs directory
+  publish = "docs"
 
 [functions]
   directory = "netlify/functions"
