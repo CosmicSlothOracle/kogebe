@@ -491,19 +491,12 @@
                 <img class="section-arrow"
                 src="https://link.storjshare.io/raw/jx4zolve64kgmj27jdwq3fh4otka/geko/arrow.png" alt="Pfeil">
             </section>
-            <section id="join">
+            <!-- Neue Sektion für Teilnahme (React App) -->
+            <section id="participate">
                 <div class="section-title-container">
-                    <h2>Mitmachen</h2>
+                    <h2>Teilnehmen</h2>
                 </div>
-                <h2 data-translate="join-title">Mitmachen</h2>
-                <p data-translate="join-description">Wir sind eine relativ homogene, weiße, akademisch sozialisierte
-                    Gruppe und wünschen uns mehr Perspektiven, um den Anforderungen der Menschen im Kiez gerecht werden
-                    zu können! Wir freuen uns über alle, die uns kennenlernen, sich ein Bild von uns machen und uns mit
-                    ihrer individuellen Sicht und ihren Erfahrungen bereichern wollen! Wer gerne bei uns aktiv werden
-                    bzw. uns unterstützen möchte, ist herzlich eingeladen beim nächsten Treffen vorbeizuschauen oder uns
-                    über unsere E-Mail-Adresse zu kontaktieren :)
-                    <img class="section-arrow"
-                    src="https://link.storjshare.io/raw/jx4zolve64kgmj27jdwq3fh4otka/geko/arrow.png" alt="Pfeil">
+                <div id="participate-root"></div>
             </section>
             <section id="programm">
                 <div class="section-title-container">
@@ -1189,6 +1182,10 @@
     </script>
     <script src="/js/chatbotKey.js"></script>
     <script defer src="/js/chatbot.js"></script>
+    <!-- Arrow images nicht verwenden -->
+    <style>.section-arrow{display:none!important;}</style>
+    <!-- Load React Events bundle and mount -->
+    <script defer src="react/kosge-events.js" onload="window.mountKosgeEvents && window.mountKosgeEvents('#participate-root')"></script>
 </body>
 
 </html>

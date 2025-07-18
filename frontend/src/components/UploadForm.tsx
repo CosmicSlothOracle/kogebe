@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 interface Props {
   onUploaded: (bannerUrl: string) => void;
@@ -7,6 +8,7 @@ interface Props {
 const MAX_SIZE_MB = 5;
 
 const UploadForm: React.FC<Props> = ({ onUploaded }) => {
+  const { token } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -31,10 +33,10 @@ const UploadForm: React.FC<Props> = ({ onUploaded }) => {
     formData.append('file', file);
 
     try {
-      // TODO: Add auth header (Bearer token) for admin
       const res = await fetch('/api/banners', {
         method: 'POST',
         body: formData,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       const json = await res.json();
       if (res.ok) {

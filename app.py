@@ -79,6 +79,23 @@ if os.path.exists(PARTICIPANTS_FILE):
 else:
     logger.warning('Participants file does not exist')
 
+# -------------------- Security configuration --------------------
+
+# Allowed origins for CORS (comma-separated). If not provided, default to same list as Flask-CORS init
+_default_origins = "http://localhost:8000,http://localhost:8080,https://kosge-frontend.onrender.com,https://kosge-frontend-kqxo.onrender.com,https://kos-frontend.onrender.com,https://kos-frontend-kqxo.onrender.com,https://kos-2.onrender.com"
+ALLOWED_ORIGINS = [o.strip() for o in os.environ.get(
+    "ALLOWED_ORIGINS", _default_origins).split(",") if o.strip()]
+
+# Admin credentials – require env override in production
+# Stored as string in env → convert to bytes for bcrypt
+_default_pw_hash = '$2b$12$ZCgWXzUdmVX.PnIfj4oeJOkX69Tu1rVZ51zGYe3kSloANnwMaTlBW'
+
+if os.environ.get("FLASK_ENV") == "production" and os.environ.get("ADMIN_PASSWORD_HASH") is None:
+    raise RuntimeError(
+        "ADMIN_PASSWORD_HASH env variable is required in production")
+
+# ---------------------------------------------------------------
+
 # Admin credentials are now loaded from environment variables so they can be
 # changed without modifying the source code.
 #
@@ -93,12 +110,15 @@ else:
 ADMIN_USERNAME: str = os.environ.get('ADMIN_USERNAME', 'admin')
 
 # Stored as string in env → convert to bytes for bcrypt
-_default_pw_hash = '$2b$12$ZCgWXzUdmVX.PnIfj4oeJOkX69Tu1rVZ51zGYe3kSloANnwMaTlBW'
 ADMIN_PASSWORD_HASH: bytes = os.environ.get(
     'ADMIN_PASSWORD_HASH', _default_pw_hash).encode('utf-8')
 
 # JWT configuration
-JWT_SECRET: str = os.environ.get('JWT_SECRET', 'change_me')
+JWT_SECRET: str = os.environ.get('JWT_SECRET')
+# Fail fast if secret is missing to avoid running with an insecure default
+if not JWT_SECRET:
+    raise RuntimeError(
+        'JWT_SECRET environment variable is required for secure token generation')
 JWT_ALGO = 'HS256'
 JWT_EXP_HOURS = 8
 
@@ -145,8 +165,10 @@ ALLOWED_EXTENSIONS = {'png'}
 
 
 def add_cors_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = request.headers.get(
-        'Origin')
+    origin = request.headers.get('Origin')
+    if origin and (origin in ALLOWED_ORIGINS):
+        response.headers['Access-Control-Allow-Origin'] = origin
+    # For non-browser/script calls where Origin is absent, do not set header.
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, OPTIONS, PUT'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
     return response
@@ -161,8 +183,9 @@ def after_request(response):
 def handle_preflight():
     if request.method == "OPTIONS":
         response = make_response()
-        response.headers.add("Access-Control-Allow-Origin",
-                             request.headers.get('Origin'))
+        origin = request.headers.get('Origin')
+        if origin and origin in ALLOWED_ORIGINS:
+            response.headers.add("Access-Control-Allow-Origin", origin)
         response.headers.add("Access-Control-Allow-Methods",
                              "GET, POST, DELETE, OPTIONS, PUT")
         response.headers.add("Access-Control-Allow-Headers",
@@ -456,10 +479,8 @@ def uploaded_file(filename):
         logger.info(f'File exists, size: {os.path.getsize(file_path)} bytes')
         response = send_from_directory(UPLOAD_FOLDER, filename)
 
-        # Add CORS headers
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        # Add CORS headers with restricted origin
+        response = add_cors_headers(response)
 
         # Set content type for PNG files
         if filename.lower().endswith('.png'):
@@ -499,10 +520,7 @@ def get_participants():
         participants = load_participants()
         response = jsonify({'participants': participants})
         # Add CORS headers
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add(
-            'Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response = add_cors_headers(response)
         response.headers.add('Content-Type', 'application/json')
         return response, 200
     except Exception as e:
@@ -513,9 +531,7 @@ def get_participants():
 @app.route('/api/participants', methods=['OPTIONS'])
 def participants_options():
     response = make_response()
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response = add_cors_headers(response)
     return response
 
 

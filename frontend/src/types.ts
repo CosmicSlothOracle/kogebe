@@ -1,5 +1,5 @@
 export interface Event {
-  id: number;
+  id: string;
   title: string;
   banner_url: string;
   participants?: Participant[];

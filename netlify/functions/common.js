@@ -7,7 +7,12 @@ const { getStore } = require("@netlify/blobs");
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || "$2b$12$ZCgWXzUdmVX.PnIfj4oeJOkX69Tu1rVZ51zGYe3kSloANnwMaTlBW";
-const JWT_SECRET = process.env.JWT_SECRET || "change_me";
+
+// Require a real secret in production – fail fast if missing
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXP_SECONDS = 8 * 60 * 60; // 8h
 
 function generateToken(username) {
@@ -43,12 +48,14 @@ function authRequired(handler) {
   };
 }
 
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
+
 function jsonResponse(data, statusCode = 200) {
   return {
     statusCode,
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
     },
     body: JSON.stringify(data),
   };

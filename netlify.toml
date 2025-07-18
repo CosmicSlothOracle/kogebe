@@ -1,6 +1,6 @@
 [build]
-  # Install Netlify Functions deps and helper scripts (no React build)
-  command = "npm --prefix netlify/functions install && python scripts/generate_chatbot_key.py && python scripts/inject_chatbot_script.py"
+  # Build React library (frontend) and then install Netlify Functions deps + helper scripts
+  command = "npm --prefix frontend install && npm --prefix frontend run build && npm --prefix netlify/functions install && python scripts/generate_chatbot_key.py && python scripts/inject_chatbot_script.py"
   # Serve static site from docs directory
   publish = "docs"
 

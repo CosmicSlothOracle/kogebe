@@ -11,7 +11,17 @@ export default defineConfig({
     port: 5000,
   },
   build: {
-    outDir: 'public', // Keep build output compatible with existing Netlify config
+    lib: {
+      entry: 'src/mountEvents.tsx',
+      name: 'KosgeEvents',
+      formats: ['iife'],
+      fileName: () => 'kosge-events.js',
+    },
+    outDir: '../docs/react', // Output inside docs for progressive enhancement
     emptyOutDir: true,
+    rollupOptions: {
+      // Ensure React is bundled so no external dependency is required on the static site
+      external: [],
+    },
   },
 });

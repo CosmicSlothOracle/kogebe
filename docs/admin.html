@@ -33,25 +33,29 @@
       </div>
       <div class="mb-6">
         <nav class="flex space-x-4">
-          <button data-tab="banners" class="tab-btn bg-blue-600 text-white px-4 py-2 rounded">Banners</button>
+          <button data-tab="events" class="tab-btn bg-blue-600 text-white px-4 py-2 rounded">Events</button>
           <button data-tab="participants" class="tab-btn bg-gray-300 text-gray-800 px-4 py-2 rounded">Participants</button>
         </nav>
       </div>
 
-      <!-- Banners Tab -->
-      <div id="tab-banners" class="tab-content">
-        <h2 class="text-2xl font-semibold mb-4">Banners</h2>
-        <div class="mb-4 flex items-center space-x-2">
-          <input id="banner-file" name="banner" type="file" accept="image/*" class="border p-2 rounded" autocomplete="off" />
-          <button id="upload-banner-btn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Upload</button>
+      <!-- Events Tab -->
+      <div id="tab-events" class="tab-content">
+        <h2 class="text-2xl font-semibold mb-4">Events</h2>
+        <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-2">
+          <input id="event-title" type="text" placeholder="Event Titel" class="border p-2 rounded col-span-1 md:col-span-1" />
+          <input id="banner-file" name="banner" type="file" accept="image/*" class="border p-2 rounded col-span-1" autocomplete="off" />
+          <button id="create-event-btn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 col-span-1">Create Event</button>
         </div>
-        <div id="banners-list" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+        <div id="events-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </div>
 
       <!-- Participants Tab -->
       <div id="tab-participants" class="tab-content hidden">
         <h2 class="text-2xl font-semibold mb-4">Participants</h2>
-        <button id="export-csv-btn" class="mb-4 bg-blue-500 text-white px-3 py-1 rounded">Export CSV</button>
+        <div class="flex flex-col md:flex-row md:items-center gap-2 mb-4">
+          <select id="participants-event-select" class="border p-2 rounded flex-1 md:flex-none md:w-64"></select>
+          <button id="export-csv-btn" class="bg-blue-500 text-white px-3 py-1 rounded">Export CSV</button>
+        </div>
         <div class="overflow-x-auto">
           <table class="min-w-full bg-white shadow rounded">
             <thead>

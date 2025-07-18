@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Event } from '../types';
+import { authFetch } from '../context/AuthContext';
 
 interface Props {
   event: Event;
@@ -17,13 +18,13 @@ const ParticipantForm: React.FC<Props> = ({ event, onClose }) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      // TODO: replace with real API call
-      const res = await fetch(`/api/events/${event.id}/participants`, {
+      const res = await authFetch(`/api/events/${event.id}/participants`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ name, email, message }),
+        skipAuth: true,
       });
       if (res.ok) {
         setSuccess(true);
