@@ -29,27 +29,47 @@ const UploadForm: React.FC<Props> = ({ onUploaded }) => {
     setError('');
     setUploading(true);
 
-    const formData = new FormData();
-    formData.append('file', file);
+    // Convert file to base64 for Netlify function compatibility
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64 = reader.result?.toString().split(',')[1];
+        if (!base64) {
+          setError('Fehler beim Lesen der Datei');
+          return;
+        }
 
-    try {
-      const res = await fetch('/api/banners', {
-        method: 'POST',
-        body: formData,
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      const json = await res.json();
-      if (res.ok) {
-        onUploaded(json.url);
-      } else {
-        setError(json.error || 'Upload fehlgeschlagen');
+        const res = await fetch('/api/banners', {
+          method: 'POST',
+          body: JSON.stringify({
+            filename: file.name,
+            dataBase64: base64
+          }),
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+        });
+              const json = await res.json();
+        if (res.ok) {
+          onUploaded(json.url);
+        } else {
+          setError(json.error || 'Upload fehlgeschlagen');
+        }
+      } catch (err) {
+        setError('Upload fehlgeschlagen');
+      } finally {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
-    } catch (err) {
-      setError('Upload fehlgeschlagen');
-    } finally {
+    };
+
+    reader.onerror = () => {
+      setError('Fehler beim Lesen der Datei');
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+    };
+
+    reader.readAsDataURL(file);
   };
 
   return (

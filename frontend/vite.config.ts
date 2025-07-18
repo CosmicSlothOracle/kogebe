@@ -15,17 +15,17 @@ export default defineConfig({
     'process.env': {},
   },
   build: {
-    lib: {
-      entry: 'src/mountEvents.tsx',
-      name: 'KosgeEvents',
-      formats: ['iife'],
-      fileName: () => 'kosge-events.js',
-    },
-    outDir: 'public', // Keep build output compatible with existing Netlify config
+    // Build to docs directory for Netlify deployment
+    outDir: '../docs/react-app',
     emptyOutDir: true,
     rollupOptions: {
-      // Ensure React is bundled so no external dependency is required on the static site
-      external: [],
+      input: 'index.html',
+      output: {
+        entryFileNames: 'assets/[name].js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]',
+      },
     },
   },
+  base: './',
 });

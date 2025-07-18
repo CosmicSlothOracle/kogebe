@@ -35,4 +35,4 @@ jobs:
 
       - name: Install Netlify Functions dependencies
         run: |
-          npm ci --prefix netlify/functions
+          npm install --prefix netlify/functions

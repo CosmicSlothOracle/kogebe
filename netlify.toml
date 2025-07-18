@@ -31,6 +31,12 @@
   to = "/.netlify/functions/events/:splat"
   status = 200
 
+# Admin panel redirect
+[[redirects]]
+  from = "/admin"
+  to = "/react-app/index.html"
+  status = 200
+
 # Keep SPA redirect last
 [[redirects]]
   from = "/*"
