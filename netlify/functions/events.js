@@ -1,4 +1,4 @@
-const { getStore, authRequired, jsonResponse } = require("./common");
+const { getStore, netlifyIdentityAuthRequired, jsonResponse } = require("./common");
 const { v4: uuidv4 } = require("uuid");
 const store = getStore("events", { consistency: "strong" });
 
@@ -123,21 +123,21 @@ exports.handler = async (event, context) => {
   if (hasId && subResource) {
     if (subResource === "participants") {
       if (method === "POST") return addParticipant(id, event);
-      if (method === "GET") return authRequired(() => listParticipants(id))(event, context);
+      if (method === "GET") return netlifyIdentityAuthRequired(() => listParticipants(id))(event, context);
     }
     if (subResource === "export") {
       const fmt = (event.queryStringParameters && event.queryStringParameters.fmt) || "json";
-      return authRequired(() => exportEvent(id, fmt))(event, context);
+      return netlifyIdentityAuthRequired(() => exportEvent(id, fmt))(event, context);
     }
   }
 
   // Handle /api/events and /api/events/:id
   if (!hasId) {
     if (method === "GET") return listEvents();
-    if (method === "POST") return authRequired(createEvent)(event, context);
+    if (method === "POST") return netlifyIdentityAuthRequired(createEvent)(event, context);
   } else {
-    if (method === "PUT") return authRequired(() => updateEvent(id, event))(event, context);
-    if (method === "DELETE") return authRequired(() => deleteEvent(id))(event, context);
+    if (method === "PUT") return netlifyIdentityAuthRequired(() => updateEvent(id, event))(event, context);
+    if (method === "DELETE") return netlifyIdentityAuthRequired(() => deleteEvent(id))(event, context);
   }
 
   return { statusCode: 405, body: "Method Not Allowed" };

@@ -1,4 +1,4 @@
-const { getStore, authRequired, jsonResponse } = require("./common");
+const { getStore, netlifyIdentityAuthRequired, jsonResponse } = require("./common");
 const { v4: uuidv4 } = require("uuid");
 const store = getStore("banners", { consistency: "strong" });
 
@@ -113,7 +113,7 @@ exports.handler = async (event, context) => {
   }
 
   if (method === "DELETE" && maybeId) {
-    return authRequired(() => deleteBanner(maybeId))(event, context);
+    return netlifyIdentityAuthRequired(() => deleteBanner(maybeId))(event, context);
   }
 
   return { statusCode: 405, body: "Method Not Allowed" };

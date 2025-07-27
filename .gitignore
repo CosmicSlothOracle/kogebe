@@ -18,3 +18,5 @@ docs/react/
 hould have an id or name attribute
 page failed to load a stylesheet from a URL.
 t
+# Local Netlify folder
+.netlify

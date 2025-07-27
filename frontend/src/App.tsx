@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import EventCard from './components/EventCard';
 import ParticipantForm from './components/ParticipantForm';
 import { Event } from './types';
-import LoginForm from './components/LoginForm';
+
 import DataExport from './components/DataExport';
 import EventForm from './components/EventForm';
 import BannerManagement from './components/BannerManagement';
@@ -12,7 +12,7 @@ import { authFetch } from './context/AuthContext';
 const App: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [showLogin, setShowLogin] = useState(false);
+
   const [showEventForm, setShowEventForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [showBannerManagement, setShowBannerManagement] = useState(false);
@@ -110,7 +110,7 @@ const App: React.FC = () => {
           ) : (
             <button
               className="bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded"
-              onClick={() => setShowLogin(true)}
+              onClick={() => login()}
             >
               Admin Login
             </button>
@@ -162,7 +162,7 @@ const App: React.FC = () => {
       {selectedEvent && (
         <ParticipantForm event={selectedEvent} onClose={handleCloseForm} />
       )}
-      {showLogin && <LoginForm onClose={() => setShowLogin(false)} />}
+
       {showEventForm && (
         <EventForm
           event={editingEvent || undefined}
