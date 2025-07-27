@@ -1,17 +1,12 @@
 [build]
-  # Build React library (frontend) and then install Netlify Functions deps + helper scripts
-  command = "npm --prefix frontend install && npm --prefix frontend run build && npm --prefix netlify/functions install && python scripts/generate_chatbot_key.py && python scripts/inject_chatbot_script.py"
-  # Serve static site from docs directory
+  command = "npm --prefix frontend install && npm --prefix frontend run build && npm --prefix netlify/functions install"
   publish = "docs"
 
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-[[redirects]]
-  from = "/api/login"
-  to = "/.netlify/functions/login"
-  status = 200
+
 [[redirects]]
   from = "/api/participants"
   to = "/.netlify/functions/participants"

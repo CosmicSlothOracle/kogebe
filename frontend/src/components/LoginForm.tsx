@@ -7,65 +7,54 @@ interface Props {
 
 const LoginForm: React.FC<Props> = ({ onClose }) => {
   const { login } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     setSubmitting(true);
     setError('');
-    const ok = await login(username, password);
-    if (ok) {
-      onClose();
-    } else {
+
+    try {
+      const success = await login();
+      if (success) {
+        onClose();
+      } else {
+        setError('Login abgebrochen oder fehlgeschlagen');
+      }
+    } catch (err) {
       setError('Login fehlgeschlagen');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded shadow-lg p-6 w-full max-w-sm">
         <h2 className="text-xl font-bold mb-4">Admin Login</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Benutzername"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full border border-gray-300 rounded p-2"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Passwort"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border border-gray-300 rounded p-2"
-            required
-          />
+        <p className="text-gray-600 mb-4">
+          Verwende Netlify Identity für die Anmeldung
+        </p>
 
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+        {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              className="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded"
-              onClick={onClose}
-            >
-              Abbrechen
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded disabled:opacity-50"
-            >
-              {submitting ? 'Anmelden…' : 'Anmelden'}
-            </button>
-          </div>
-        </form>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            className="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded"
+            onClick={onClose}
+          >
+            Abbrechen
+          </button>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={handleLogin}
+            className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded disabled:opacity-50"
+          >
+            {submitting ? 'Anmelden…' : 'Mit Netlify Identity anmelden'}
+          </button>
+        </div>
       </div>
     </div>
   );

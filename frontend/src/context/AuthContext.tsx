@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import netlifyIdentity from "netlify-identity-widget";
 
 interface AuthState {
   token: string | null;
@@ -6,15 +7,14 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  login: (username: string, password: string) => Promise<boolean>;
+  login: () => Promise<boolean>;
   logout: () => void;
 }
 
 const defaultCtx: AuthContextValue = {
   token: null,
   user: null,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  login: async (_u: string, _p: string) => false,
+  login: async () => false,
   logout: () => {},
 };
 
@@ -23,6 +23,35 @@ const AuthContext = createContext<AuthContextValue>(defaultCtx);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('jwt'));
   const [user, setUser] = useState<string | null>(() => localStorage.getItem('user'));
+
+  useEffect(() => {
+    // Initialize Netlify Identity
+    netlifyIdentity.init();
+
+    // Check for existing user on mount
+    const currentUser = netlifyIdentity.currentUser();
+    if (currentUser) {
+      setUser(currentUser.user_metadata?.full_name || currentUser.email || 'Admin');
+      setToken(currentUser.token?.access_token || null);
+    }
+
+    // Listen for login events
+    netlifyIdentity.on('login', (user) => {
+      setUser(user.user_metadata?.full_name || user.email || 'Admin');
+      setToken(user.token?.access_token || null);
+    });
+
+    // Listen for logout events
+    netlifyIdentity.on('logout', () => {
+      setUser(null);
+      setToken(null);
+    });
+
+    return () => {
+      netlifyIdentity.off('login');
+      netlifyIdentity.off('logout');
+    };
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -40,26 +69,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  const login = async (username: string, password: string) => {
-    try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      const json = await res.json();
-      if (res.ok && json.token) {
-        setToken(json.token);
-        setUser(json.user || username);
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
+  const login = async () => {
+    return new Promise<boolean>((resolve) => {
+      netlifyIdentity.open("login");
+
+      const handleLogin = (user: any) => {
+        netlifyIdentity.close();
+        setUser(user.user_metadata?.full_name || user.email || 'Admin');
+        setToken(user.token?.access_token || null);
+        netlifyIdentity.off('login', handleLogin);
+        resolve(true);
+      };
+
+      const handleClose = () => {
+        netlifyIdentity.off('login', handleLogin);
+        netlifyIdentity.off('close', handleClose);
+        resolve(false);
+      };
+
+      netlifyIdentity.on('login', handleLogin);
+      netlifyIdentity.on('close', handleClose);
+    });
   };
 
   const logout = () => {
+    netlifyIdentity.logout();
     setToken(null);
     setUser(null);
   };
