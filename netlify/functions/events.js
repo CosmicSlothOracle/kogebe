@@ -1,9 +1,10 @@
-const { getStore, netlifyIdentityAuthRequired, jsonResponse } = require("./common");
+const { netlifyIdentityAuthRequired, jsonResponse } = require("./common");
+const { getStore } = require("@netlify/blobs");
 const { v4: uuidv4 } = require("uuid");
-const store = getStore("events", { consistency: "strong" });
 
 // Helpers
 async function listEvents() {
+  const store = getStore("events", { consistency: "strong" });
   const events = [];
   for await (const page of store.list({ paginate: true })) {
     for (const blob of page.blobs) {
@@ -17,6 +18,7 @@ async function listEvents() {
 }
 
 async function createEvent(event) {
+  const store = getStore("events", { consistency: "strong" });
   let payload;
   try {
     payload = JSON.parse(event.body || "{}");
@@ -32,10 +34,12 @@ async function createEvent(event) {
 }
 
 async function getEventById(id) {
+  const store = getStore("events", { consistency: "strong" });
   return store.get(id, { type: "json", consistency: "strong" });
 }
 
 async function updateEvent(id, event) {
+  const store = getStore("events", { consistency: "strong" });
   const existing = await getEventById(id);
   if (!existing) return jsonResponse({ error: "Event not found" }, 404);
   let payload;
@@ -53,6 +57,7 @@ async function updateEvent(id, event) {
 }
 
 async function deleteEvent(id) {
+  const store = getStore("events", { consistency: "strong" });
   await store.delete(id);
   return jsonResponse({ success: true });
 }
@@ -61,6 +66,7 @@ async function deleteEvent(id) {
 async function addParticipant(id, event) {
   const ev = await getEventById(id);
   if (!ev) return jsonResponse({ error: "Event not found" }, 404);
+  const store = getStore("events", { consistency: "strong" });
   let payload;
   try {
     payload = JSON.parse(event.body || "{}");

@@ -1,11 +1,10 @@
-const { getStore, netlifyIdentityAuthRequired, jsonResponse } = require("./common");
+const { netlifyIdentityAuthRequired, jsonResponse } = require("./common");
+const { getStore } = require("@netlify/blobs");
 const { v4: uuidv4 } = require("uuid");
-
-// Initialize store using centralized configuration
-const store = getStore("banners", { consistency: "strong" });
 
 // Utility to get list of banner URLs (relative to function)
 async function listBanners(event) {
+  const store = getStore("banners", { consistency: "strong" });
   const base = `${event.headers["x-forwarded-proto"] || "https"}://${event.headers.host}`;
   const urls = [];
   try {
@@ -22,6 +21,8 @@ async function listBanners(event) {
 
 // Upload new banner (binary or base64-json)
 async function uploadBanner(event, context) {
+  const store = getStore("banners", { consistency: "strong" });
+
   // Only admins may upload
   const authed = await netlifyIdentityAuthRequired(() => Promise.resolve(true))(event, context);
   if (authed.statusCode && authed.statusCode !== 200) {
@@ -68,6 +69,7 @@ async function uploadBanner(event, context) {
 
 // Serve banner binary by key
 async function serveBanner(id) {
+  const store = getStore("banners", { consistency: "strong" });
   const blob = await store.get(id, { consistency: "strong" });
   if (!blob) return { statusCode: 404, body: "Not found" };
   // Determine correct MIME from file extension so browsers render webp/jpg correctly
@@ -95,6 +97,7 @@ async function serveBanner(id) {
 }
 
 async function deleteBanner(id) {
+  const store = getStore("banners", { consistency: "strong" });
   await store.delete(id);
   return jsonResponse({ success: true });
 }

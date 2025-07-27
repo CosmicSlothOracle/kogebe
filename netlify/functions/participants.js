@@ -1,9 +1,9 @@
-const { getStore, netlifyIdentityAuthRequired, jsonResponse } = require("./common");
+const { netlifyIdentityAuthRequired, jsonResponse } = require("./common");
+const { getStore } = require("@netlify/blobs");
 const { v4: uuidv4 } = require("uuid");
 
-const store = getStore("participants", { consistency: "strong" });
-
 async function addParticipant(event) {
+  const store = getStore("participants", { consistency: "strong" });
   let data;
   try {
     data = JSON.parse(event.body || "{}");
@@ -19,6 +19,7 @@ async function addParticipant(event) {
 }
 
 async function listParticipants() {
+  const store = getStore("participants", { consistency: "strong" });
   const all = [];
   for await (const page of store.list({ paginate: true })) {
     for (const blob of page.blobs) {
