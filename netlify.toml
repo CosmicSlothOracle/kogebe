@@ -6,6 +6,10 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Plugin to automatically install dependencies in Netlify Functions
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
+
 [dev]
   port = 8888
   targetPort = 3000
