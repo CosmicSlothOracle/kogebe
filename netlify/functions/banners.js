@@ -57,7 +57,7 @@ async function listBanners(event) {
         result.push({
           id: blob.key,
           url: `${base}/api/banners/${blob.key}`,
-          filename: blob.metadata?.filename || blob.key,
+          filename: (blob.metadata && blob.metadata.filename) || blob.key,
           uploaded_at: uploadedAt,
           size: blob.size || 0,
           metadata: blob.metadata || {},
