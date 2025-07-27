@@ -1,27 +1,11 @@
 const { getStore, netlifyIdentityAuthRequired, jsonResponse } = require("./common");
 const { v4: uuidv4 } = require("uuid");
-const { getStore: getBlobStore } = require("@netlify/blobs");
 
-// Initialize store with proper configuration
-let store;
-try {
-  store = getBlobStore("banners", {
-    siteID: "6a528881-522e-4e8e-a178-2ac8f44c1a97",
-    token: "nfp_WHoSi6NeAginaV2j7XiofK5yMUqLxE8U3aa3",
-    consistency: "strong"
-  });
-} catch (error) {
-  console.error("Failed to initialize store:", error);
-  store = null;
-}
+// Initialize store using centralized configuration
+const store = getStore("banners", { consistency: "strong" });
 
 // Utility to get list of banner URLs (relative to function)
 async function listBanners(event) {
-  if (!store) {
-    console.error("Store not initialized");
-    return jsonResponse({ banners: [] });
-  }
-
   const base = `${event.headers["x-forwarded-proto"] || "https"}://${event.headers.host}`;
   const urls = [];
   try {
