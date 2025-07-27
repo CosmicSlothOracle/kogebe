@@ -37,13 +37,17 @@
 [build.environment]
   # Disable secret scanning for the Groq API key written to the chatbotKey.js file
   SECRETS_SCAN_OMIT_KEYS = "GROQ_API_KEY"
-  NETLIFY_SITE_ID = "6a528881-522e-4e8e-a178-2ac8f44c1a97"
-  NETLIFY_ACCESS_TOKEN = "nfp_WHoSi6NeAginaV2j7XiofK5yMUqLxE8U3aa3"
+  NETLIFY_BLOBS_SITE_ID = "6a528881-522e-4e8e-a178-2ac8f44c1a97"
+  NETLIFY_BLOBS_TOKEN = "nfp_WHoSi6NeAginaV2j7XiofK5yMUqLxE8U3aa3"
 
 [context.production.environment]
   # Netlify Identity settings
   NETLIFY_USE_YARN = "true"
+  NETLIFY_BLOBS_SITE_ID = "6a528881-522e-4e8e-a178-2ac8f44c1a97"
+  NETLIFY_BLOBS_TOKEN = "nfp_WHoSi6NeAginaV2j7XiofK5yMUqLxE8U3aa3"
 
 [context.deploy-preview.environment]
   # Netlify Identity settings for preview deployments
   NETLIFY_USE_YARN = "true"
+  NETLIFY_BLOBS_SITE_ID = "6a528881-522e-4e8e-a178-2ac8f44c1a97"
+  NETLIFY_BLOBS_TOKEN = "nfp_WHoSi6NeAginaV2j7XiofK5yMUqLxE8U3aa3"
