@@ -25,8 +25,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<string | null>(() => localStorage.getItem('user'));
 
   useEffect(() => {
-    // Initialize Netlify Identity
-    netlifyIdentity.init();
+    // Initialize Netlify Identity with proper configuration
+    netlifyIdentity.init({
+      APIUrl: 'https://your-site-name.netlify.app/.netlify/identity'
+    });
 
     // Check for existing user on mount
     const currentUser = netlifyIdentity.currentUser();
