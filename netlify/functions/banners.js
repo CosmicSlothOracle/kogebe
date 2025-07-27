@@ -6,17 +6,24 @@ const { v4: uuidv4 } = require("uuid");
 async function listBanners(event) {
   const store = getStore("banners", { consistency: "strong" });
   const base = `${event.headers["x-forwarded-proto"] || "https"}://${event.headers.host}`;
-  const urls = [];
+  const banners = [];
   try {
     for await (const page of store.list({ paginate: true })) {
       for (const blob of page.blobs) {
-        urls.push(`${base}/api/banners/${blob.key}`);
+        banners.push({
+          id: blob.key,
+          url: `${base}/api/banners/${blob.key}`,
+          filename: blob.key,
+          uploaded_at: blob.etag ? new Date(parseInt(blob.etag)).toISOString() : new Date().toISOString(),
+          size: blob.size || 0,
+          metadata: blob.metadata || {}
+        });
       }
     }
   } catch (error) {
     console.error("Error listing banners:", error);
   }
-  return jsonResponse({ banners: urls });
+  return jsonResponse({ banners });
 }
 
 // Upload new banner (binary or base64-json)

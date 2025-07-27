@@ -26,14 +26,8 @@ const BannerManagement: React.FC = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        // The API returns {banners: [urls]} but we need more info
-        const bannerUrls = data.banners || [];
-        const banners = bannerUrls.map((url: string, index: number) => ({
-          id: `banner_${index}`,
-          url: url,
-          filename: url.split('/').pop() || `banner_${index}.png`,
-          uploaded_at: new Date().toISOString(), // API doesn't provide this info
-        }));
+        // The API now returns complete banner objects with real IDs and metadata
+        const banners = data.banners || [];
         setBanners(banners);
       } else {
         setError('Fehler beim Laden der Banner');
@@ -57,8 +51,7 @@ const BannerManagement: React.FC = () => {
       const banner = banners.find(b => b.id === bannerId);
       if (!banner) return;
 
-      const filename = banner.filename;
-      const res = await fetch(`/api/banners/${filename}`, {
+      const res = await fetch(`/api/banners/${bannerId}`, {
         method: 'DELETE',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
