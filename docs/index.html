@@ -523,26 +523,7 @@
             </div>
         </footer>
     </div>
-    <!-- Admin Login Button -->
-    <a id="admin-login-button" href="/admin.html" class="admin-link">Admin Panel</a>
-    <!-- Admin Login Modal -->
-    <div id="admin-login-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Admin Login</h2>
-            <form id="admin-login-form">
-                <div class="form-group">
-                    <label for="username">Benutzername:</label>
-                    <input type="text" id="username" name="username" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Passwort:</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                <button type="submit">Anmelden</button>
-            </form>
-        </div>
-    </div>
+
     <!-- Banner Edit Modal -->
     <div id="banner-edit-modal" class="modal">
         <div class="modal-content">
@@ -683,14 +664,10 @@
     <!-- Admin Login and Banner Management -->
     <script>
         // Admin Login and Banner Management
-        const ADMIN_USERNAME = 'admin';
-        const ADMIN_PASSWORD = 'kosge2024!';
-        let isAdminLoggedIn = false;
+        // Admin functionality moved to React app with Netlify Identity
 
-        // Admin Login Modal
-        const adminLoginModal = document.getElementById('admin-login-modal');
+        // Admin functionality moved to React app
         const bannerEditModal = document.getElementById('banner-edit-modal');
-        const adminLoginForm = document.getElementById('admin-login-form');
         const bannerEditForm = document.getElementById('banner-edit-form');
         const editBannerBtns = document.querySelectorAll('.edit-banner-btn');
         const closeButtons = document.querySelectorAll('.close');
@@ -724,21 +701,8 @@
         });
         document.body.appendChild(dashboardBtn);
 
-        // Admin Login
-        adminLoginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-                isAdminLoggedIn = true;
-                adminLoginModal.style.display = 'none';
-                // Automatically redirect to dashboard instead of showing dashboard button
-                window.location.href = 'admin/dashboard.html';
-            } else {
-                alert('Ungültige Anmeldedaten');
-            }
-        });
+        // Admin login redirects to React app
+        // No more inline login form needed
 
         // Ensure edit buttons are hidden by default
         document.addEventListener('DOMContentLoaded', () => {
@@ -755,10 +719,9 @@
         // Banner Edit Functionality
         editBannerBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                if (!isAdminLoggedIn) {
-                    adminLoginModal.style.display = 'block';
-                    return;
-                }
+                // Redirect to React admin app for authentication
+                window.location.href = '/admin';
+                return;
                 const bannerId = btn.getAttribute('data-banner');
                 document.getElementById('edit-banner-id').value = bannerId;
                 const currentUrl = document.getElementById(`banner${bannerId}`).src;
@@ -1014,10 +977,9 @@
 
         // Admin Teilnahmen anzeigen
         async function showParticipations() {
-            if (!isAdminLoggedIn) {
-                adminLoginModal.style.display = 'block';
+                            // Redirect to React admin app for authentication
+                window.location.href = '/admin';
                 return;
-            }
 
             try {
                 participationList.innerHTML = '<div class="loading-message">Lade Teilnahmen...</div>';
