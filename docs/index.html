@@ -712,7 +712,7 @@
             });
 
             // Load saved banner URLs on page load
-            loadBanners();
+            loadBanners().catch(err => console.error('Error loading banners:', err));
         });
 
         // Banner Edit Functionality
@@ -765,32 +765,50 @@
             document.getElementById('banner-url').value = '';
         });
 
-        // Load saved banner URLs on page load
-        function loadBanners() {
+        // Load banner URLs from backend with fallback to localStorage
+        async function loadBanners() {
             console.log("loadBanners function called");
-
+            try {
+                // Lade Liste der Banner von der Netlify‑Function
+                const response = await fetch('/api/banners');
+                if (response.ok) {
+                    const data = await response.json();
+                    // data.banners ist ein Array der URLs
+                    const urls = Array.isArray(data.banners) ? data.banners : [];
+                    urls.forEach((url, index) => {
+                        const bannerImg = document.getElementById(`banner${index + 1}`);
+                        if (bannerImg && url) {
+                            console.log(`Setting banner ${index + 1} src to`, url);
+                            bannerImg.src = url;
+                            // Fallback bei 404/Fehler: Platzhalter anzeigen
+                            bannerImg.onerror = function() {
+                                console.log(`Error loading image for banner ${index + 1}, using placeholder`);
+                                this.src = 'https://i.postimg.cc/vTW9F8fC/platzhalter.png';
+                                this.onerror = null;
+                            };
+                            bannerImg.onload = function() {
+                                console.log(`Banner ${index + 1} image loaded successfully`);
+                            };
+                        }
+                    });
+                    // Banner wurden aus dem Backend geladen – kein Fallback nötig
+                    return;
+                }
+            } catch (err) {
+                console.error('Failed to fetch banners from backend', err);
+            }
+            // Fallback: Banner aus dem localStorage laden
             for (let i = 1; i <= 4; i++) {
                 const savedUrl = localStorage.getItem(`banner${i}Url`);
                 const bannerImg = document.getElementById(`banner${i}`);
-
-                console.log(`Banner ${i}:`, {
-                    "savedUrl": savedUrl,
-                    "bannerElement": bannerImg,
-                    "bannerElementExists": !!bannerImg
-                });
-
                 if (savedUrl && bannerImg) {
-                    console.log(`Setting banner ${i} src to`, savedUrl);
+                    console.log(`Setting banner ${i} src from localStorage to`, savedUrl);
                     bannerImg.src = savedUrl;
-
-                    // Add error handling for broken image URLs
                     bannerImg.onerror = function() {
                         console.log(`Error loading image for banner ${i}, using placeholder`);
                         this.src = 'https://i.postimg.cc/vTW9F8fC/platzhalter.png';
-                        this.onerror = null; // Prevent infinite loop
+                        this.onerror = null;
                     };
-
-                    // Ensure onload event fires
                     bannerImg.onload = function() {
                         console.log(`Banner ${i} image loaded successfully`);
                     };
@@ -800,13 +818,13 @@
 
         // Ensure banners load on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadBanners();
+            loadBanners().catch(err => console.error('Error loading banners:', err));
             console.log("Banners loaded on DOMContentLoaded");
         });
 
         // Additionally load banners when window is fully loaded
         window.addEventListener('load', function() {
-            loadBanners();
+            loadBanners().catch(err => console.error('Error loading banners:', err));
             console.log("Banners loaded on window load");
         });
     </script>
@@ -1119,7 +1137,7 @@
         // Add reload functionality to ensure banners are properly displayed
         window.addEventListener('load', function() {
             // Force reload banners from localStorage
-            loadBanners();
+            loadBanners().catch(err => console.error('Error loading banners:', err));
         });
     </script>
     <script>

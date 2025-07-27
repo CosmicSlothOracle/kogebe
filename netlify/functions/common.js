@@ -1,7 +1,16 @@
 // Common helpers for all Netlify Functions (Node runtime)
 // Each function can `require("./common")` to access utilities.
 
-const { getStore } = require("@netlify/blobs");
+const { getStore: getBlobStore } = require("@netlify/blobs");
+
+// Wrapper function that provides proper configuration for getStore
+function getStore(storeName, options = {}) {
+  return getBlobStore(storeName, {
+    siteID: "6a528881-522e-4e8e-a178-2ac8f44c1a97",
+    token: "nfp_WHoSi6NeAginaV2j7XiofK5yMUqLxE8U3aa3",
+    ...options
+  });
+}
 
 function verifyNetlifyIdentityToken(token) {
   try {
