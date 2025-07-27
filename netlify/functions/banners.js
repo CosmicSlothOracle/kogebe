@@ -17,7 +17,7 @@ async function listBanners(event) {
 // Upload new banner (binary or base64-json)
 async function uploadBanner(event, context) {
   // Only admins may upload
-  const authed = await authRequired(() => Promise.resolve(true))(event, context);
+  const authed = await netlifyIdentityAuthRequired(() => Promise.resolve(true))(event, context);
   if (authed.statusCode && authed.statusCode !== 200) {
     // Failed authRequired returns a full response – just forward it
     return authed;

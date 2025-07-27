@@ -1,4 +1,4 @@
-const { getStore, authRequired, jsonResponse } = require("./common");
+const { getStore, netlifyIdentityAuthRequired, jsonResponse } = require("./common");
 const { v4: uuidv4 } = require("uuid");
 
 const store = getStore("participants", { consistency: "strong" });
@@ -37,7 +37,7 @@ exports.handler = async (event, context) => {
   }
   if (event.httpMethod === "GET") {
     // protect GET with auth
-    return authRequired(() => listParticipants())(event, context);
+    return netlifyIdentityAuthRequired(() => listParticipants())(event, context);
   }
   return { statusCode: 405, body: "Method Not Allowed" };
 };

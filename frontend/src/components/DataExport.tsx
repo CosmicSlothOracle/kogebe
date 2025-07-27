@@ -11,10 +11,21 @@ const DataExport: React.FC = () => {
       try {
         const res = await authFetch('/api/events', { skipAuth: true });
         const json = await res.json();
-        setEvents(json.events);
+        // API is expected to return { events: Event[] } but guard against other shapes
+        if (Array.isArray(json?.events)) {
+          setEvents(json.events);
+        } else if (Array.isArray(json)) {
+          // Some environments might return the array directly
+          setEvents(json as Event[]);
+        } else {
+          // Fallback to empty list to avoid runtime errors
+          setEvents([]);
+        }
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error(err);
+        // Ensure events is never undefined even on error
+        setEvents([]);
       }
     }
     fetchEvents();
