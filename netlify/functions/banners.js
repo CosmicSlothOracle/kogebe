@@ -1,136 +1,206 @@
-const { netlifyIdentityAuthRequired, jsonResponse } = require("./common");
-const { getStore } = require("@netlify/blobs");
-const { v4: uuidv4 } = require("uuid");
+const { netlifyIdentityAuthRequired, jsonResponse } = require('./common');
+const { getStore } = require('@netlify/blobs');
+const { v4: uuidv4 } = require('uuid');
 
-// Utility to get list of banner URLs (relative to function)
+/**
+ * Create a Netlify Blob store with the correct configuration.
+ *
+ * In production on Netlify, `@netlify/blobs` automatically injects the
+ * required `siteID` and `token` so you can simply call `getStore()`
+ * with a store name. However, when running functions locally (for
+ * example via `netlify dev`), those environment variables are not
+ * injected and `getStore()` will throw a MissingBlobsEnvironmentError.
+ * To support local development you can set `NETLIFY_BLOBS_SITE_ID` and
+ * `NETLIFY_BLOBS_TOKEN` in your environment and this helper will pass
+ * them to `getStore()`.
+ *
+ * @param {string} name The name of the blob store (e.g. `banners`)
+ */
+function createStore(name) {
+  const opts = { consistency: 'strong' };
+  const siteID = process.env.NETLIFY_BLOBS_SITE_ID;
+  const token = process.env.NETLIFY_BLOBS_TOKEN;
+  if (siteID && token) {
+    opts.siteID = siteID;
+    opts.token = token;
+  }
+  return getStore(name, opts);
+}
+
+/**
+ * Retrieve a list of banners with full metadata.  The API returns
+ * objects containing the blob key, a URL to fetch the binary data,
+ * the original filename, the upload timestamp and any custom
+ * metadata that was saved with the blob.
+ *
+ * @param {object} event The lambda event
+ */
 async function listBanners(event) {
-  const store = getStore("banners", { consistency: "strong" });
-  const base = `${event.headers["x-forwarded-proto"] || "https"}://${event.headers.host}`;
-  const banners = [];
+  const store = createStore('banners');
+  const base = `${event.headers['x-forwarded-proto'] || 'https'}://${event.headers.host}`;
+  const result = [];
   try {
     for await (const page of store.list({ paginate: true })) {
       for (const blob of page.blobs) {
-        banners.push({
+        // Determine upload timestamp.  Prefer explicitly stored
+        // metadata; fall back to numeric ETag if present; otherwise
+        // default to current time.
+        let uploadedAt = null;
+        if (blob.metadata && blob.metadata.uploaded_at) {
+          uploadedAt = blob.metadata.uploaded_at;
+        } else if (blob.etag && /^\d+$/.test(blob.etag)) {
+          uploadedAt = new Date(parseInt(blob.etag, 10)).toISOString();
+        }
+        if (!uploadedAt) {
+          uploadedAt = new Date().toISOString();
+        }
+        result.push({
           id: blob.key,
           url: `${base}/api/banners/${blob.key}`,
-          filename: blob.key,
-          uploaded_at: blob.etag ? new Date(parseInt(blob.etag)).toISOString() : new Date().toISOString(),
+          filename: blob.metadata?.filename || blob.key,
+          uploaded_at: uploadedAt,
           size: blob.size || 0,
-          metadata: blob.metadata || {}
+          metadata: blob.metadata || {},
         });
       }
     }
-  } catch (error) {
-    console.error("Error listing banners:", error);
+  } catch (err) {
+    console.error('Error listing banners:', err);
   }
-  return jsonResponse({ banners });
+  return result;
 }
 
-// Upload new banner (binary or base64-json)
+/**
+ * Handle uploading of a banner.  Accepts either a JSON body with
+ * `filename` and a base64‐encoded string (`dataBase64`), or a
+ * multipart/form-data request containing a binary file.  Only
+ * authenticated users with the proper role may upload.
+ *
+ * @param {object} event The lambda event
+ * @param {object} context The lambda context
+ */
 async function uploadBanner(event, context) {
-  const store = getStore("banners", { consistency: "strong" });
-
-  // Only admins may upload
+  // enforce authentication using Netlify Identity
   const authed = await netlifyIdentityAuthRequired(() => Promise.resolve(true))(event, context);
   if (authed.statusCode && authed.statusCode !== 200) {
-    // Failed authRequired returns a full response – just forward it
     return authed;
   }
+  const store = createStore('banners');
 
-  let contentType = event.headers["content-type"] || event.headers["Content-Type"] || "";
+  let contentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
+  if (!contentType) contentType = 'application/json';
 
-  // Some browsers omit the header when sending fetch(JSON-string). Treat empty as JSON.
-  if (!contentType) contentType = "application/json";
-
-  // CASE 1: Frontend sends JSON with { filename, dataBase64 }
-  if (contentType.includes("application/json")) {
+  // JSON payload with base64 encoded data
+  if (contentType.includes('application/json')) {
     let payload;
     try {
-      payload = JSON.parse(event.body || "{}");
-    } catch {
-      return jsonResponse({ error: "Invalid JSON" }, 400);
+      payload = JSON.parse(event.body || '{}');
+    } catch (err) {
+      return jsonResponse({ error: 'Invalid JSON' }, 400);
     }
     const { filename, dataBase64 } = payload;
-    if (!dataBase64) return jsonResponse({ error: "dataBase64 required" }, 400);
-    const buffer = Buffer.from(dataBase64, "base64");
-    const ext = filename && filename.includes(".") ? filename.split(".").pop() : "png";
+    if (!dataBase64) return jsonResponse({ error: 'dataBase64 required' }, 400);
+    const buffer = Buffer.from(dataBase64, 'base64');
+    const ext = filename && filename.includes('.') ? filename.split('.').pop() : 'png';
     const id = `${uuidv4()}.${ext}`;
-    await store.put(id, buffer);
-    const base = `${event.headers["x-forwarded-proto"] || "https"}://${event.headers.host}`;
+    const meta = {
+      filename: filename || id,
+      uploaded_at: new Date().toISOString(),
+    };
+    await store.put(id, buffer, { metadata: meta });
+    const base = `${event.headers['x-forwarded-proto'] || 'https'}://${event.headers.host}`;
     return jsonResponse({ success: true, url: `${base}/api/banners/${id}`, id }, 201);
   }
 
-  // CASE 2: Frontend sends binary (e.g., via fetch/FormData) → body is base64
-  if (event.isBase64Encoded) {
-    const extMatch = contentType.match(/image\/(\w+)/);
-    const ext = extMatch ? extMatch[1] : "png";
+  // multipart/form-data with base64 encoded body (from Netlify)
+  if (event.isBase64Encoded && /multipart\/.+/i.test(contentType)) {
+    // try to extract original filename from content type header if present
+    let originalFilename;
+    const filenameMatch = contentType.match(/filename="([^"]+)"/);
+    if (filenameMatch) {
+      originalFilename = filenameMatch[1];
+    }
+    const ext = originalFilename && originalFilename.includes('.') ? originalFilename.split('.').pop() : 'png';
     const id = `${uuidv4()}.${ext}`;
-    const buffer = Buffer.from(event.body, "base64");
-    await store.put(id, buffer, { metadata: { contentType } });
-    const base = `${event.headers["x-forwarded-proto"] || "https"}://${event.headers.host}`;
+    const buffer = Buffer.from(event.body, 'base64');
+    const meta = {
+      filename: originalFilename || id,
+      uploaded_at: new Date().toISOString(),
+    };
+    await store.put(id, buffer, { metadata: meta });
+    const base = `${event.headers['x-forwarded-proto'] || 'https'}://${event.headers.host}`;
     return jsonResponse({ success: true, url: `${base}/api/banners/${id}`, id }, 201);
   }
 
-  return jsonResponse({ error: "Unsupported upload format" }, 415);
+  return jsonResponse({ error: 'Invalid request' }, 400);
 }
 
-// Serve banner binary by key
+/**
+ * Serve the binary contents of a banner.  Retrieves the blob from the
+ * store and returns it with the appropriate MIME type.  Uses strong
+ * consistency to ensure the most recent version is returned.
+ *
+ * @param {string} id The blob key
+ */
 async function serveBanner(id) {
-  const store = getStore("banners", { consistency: "strong" });
-  const blob = await store.get(id, { consistency: "strong" });
-  if (!blob) return { statusCode: 404, body: "Not found" };
-  // Determine correct MIME from file extension so browsers render webp/jpg correctly
-  const ext = id.split(".").pop().toLowerCase();
+  const store = createStore('banners');
+  const blob = await store.get(id);
+  if (!blob) {
+    return { statusCode: 404, body: 'Not Found' };
+  }
+  const ext = id.split('.').pop().toLowerCase();
   const mimeMap = {
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    gif: "image/gif",
-    webp: "image/webp",
-    svg: "image/svg+xml",
-    avif: "image/avif",
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    svg: 'image/svg+xml',
+    avif: 'image/avif',
   };
-  const mime = mimeMap[ext] || "application/octet-stream";
-
+  const mime = mimeMap[ext] || 'application/octet-stream';
   return {
     statusCode: 200,
     headers: {
-      "Content-Type": mime,
-      "Cache-Control": "public, max-age=31536000, immutable",
+      'Content-Type': mime,
+      'Cache-Control': 'public, max-age=31536000, immutable',
     },
     isBase64Encoded: true,
-    body: blob.toString("base64"),
+    body: blob.toString('base64'),
   };
 }
 
+/**
+ * Delete a banner by its key.  Only authenticated users may delete.
+ *
+ * @param {string} id The blob key
+ */
 async function deleteBanner(id) {
-  const store = getStore("banners", { consistency: "strong" });
+  const store = createStore('banners');
   await store.delete(id);
   return jsonResponse({ success: true });
 }
 
 exports.handler = async (event, context) => {
-  // Route: POST upload => not yet implemented; GET list; DELETE /api/banners/<id>
   const method = event.httpMethod;
-  const pathParts = event.path.split("/").filter(Boolean);
+  const pathParts = event.path.split('/').filter(Boolean);
   const maybeId = pathParts.length > 2 ? pathParts[pathParts.length - 1] : null;
 
-  if (method === "GET") {
+  if (method === 'GET') {
     if (maybeId) {
-      // GET /api/banners/<id> → serve file
       return serveBanner(maybeId);
     }
-    // GET /api/banners → list
-    return listBanners(event);
+    const banners = await listBanners(event);
+    return jsonResponse({ banners });
   }
 
-  if (method === "POST") {
+  if (method === 'POST') {
     return uploadBanner(event, context);
   }
 
-  if (method === "DELETE" && maybeId) {
+  if (method === 'DELETE' && maybeId) {
     return netlifyIdentityAuthRequired(() => deleteBanner(maybeId))(event, context);
   }
 
-  return { statusCode: 405, body: "Method Not Allowed" };
+  return { statusCode: 405, body: 'Method Not Allowed' };
 };
