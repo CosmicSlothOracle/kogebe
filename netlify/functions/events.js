@@ -2,9 +2,34 @@ const { netlifyIdentityAuthRequired, jsonResponse } = require("./common");
 const { getStore } = require("@netlify/blobs");
 const { v4: uuidv4 } = require("uuid");
 
+/**
+ * Create a Netlify Blob store with the correct configuration.
+ *
+ * In production on Netlify, `@netlify/blobs` automatically injects the
+ * required `siteID` and `token` so you can simply call `getStore()`
+ * with a store name. However, when running functions locally (for
+ * example via `netlify dev`), those environment variables are not
+ * injected and `getStore()` will throw a MissingBlobsEnvironmentError.
+ * To support local development you can set `NETLIFY_BLOBS_SITE_ID` and
+ * `NETLIFY_BLOBS_TOKEN` in your environment and this helper will pass
+ * them to `getStore()`.
+ *
+ * @param {string} name The name of the blob store (e.g. `events`)
+ */
+function createStore(name) {
+  const opts = { consistency: "strong" };
+  const siteID = process.env.NETLIFY_BLOBS_SITE_ID;
+  const token = process.env.NETLIFY_BLOBS_TOKEN;
+  if (siteID && token) {
+    opts.siteID = siteID;
+    opts.token = token;
+  }
+  return getStore(name, opts);
+}
+
 // Helpers
 async function listEvents() {
-  const store = getStore("events", { consistency: "strong" });
+  const store = createStore("events");
   const events = [];
   for await (const page of store.list({ paginate: true })) {
     for (const blob of page.blobs) {
@@ -18,7 +43,7 @@ async function listEvents() {
 }
 
 async function createEvent(event) {
-  const store = getStore("events", { consistency: "strong" });
+  const store = createStore("events");
   let payload;
   try {
     payload = JSON.parse(event.body || "{}");
@@ -34,12 +59,12 @@ async function createEvent(event) {
 }
 
 async function getEventById(id) {
-  const store = getStore("events", { consistency: "strong" });
+  const store = createStore("events");
   return store.get(id, { type: "json", consistency: "strong" });
 }
 
 async function updateEvent(id, event) {
-  const store = getStore("events", { consistency: "strong" });
+  const store = createStore("events");
   const existing = await getEventById(id);
   if (!existing) return jsonResponse({ error: "Event not found" }, 404);
   let payload;
@@ -57,7 +82,7 @@ async function updateEvent(id, event) {
 }
 
 async function deleteEvent(id) {
-  const store = getStore("events", { consistency: "strong" });
+  const store = createStore("events");
   await store.delete(id);
   return jsonResponse({ success: true });
 }
@@ -66,7 +91,7 @@ async function deleteEvent(id) {
 async function addParticipant(id, event) {
   const ev = await getEventById(id);
   if (!ev) return jsonResponse({ error: "Event not found" }, 404);
-  const store = getStore("events", { consistency: "strong" });
+  const store = createStore("events");
   let payload;
   try {
     payload = JSON.parse(event.body || "{}");
