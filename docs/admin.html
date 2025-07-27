@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KOSGE Admin - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .admin-login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .admin-login-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .admin-login-card h1 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .admin-login-card p {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        .netlify-identity-button {
+            background: var(--accent-color);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .netlify-identity-button:hover {
+            background: var(--secondary-color);
+        }
+
+        .back-link {
+            margin-top: 1rem;
+            display: block;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-login-container">
+        <div class="admin-login-card">
+            <h1>KOSGE Admin</h1>
+            <p>Bitte melden Sie sich an, um auf das Admin-Panel zuzugreifen.</p>
+
+            <!-- Netlify Identity Login Button -->
+            <button class="netlify-identity-button" data-netlify-identity-button>
+                Anmelden
+            </button>
+
+            <a href="/" class="back-link">← Zurück zur Startseite</a>
+        </div>
+    </div>
+
+    <!-- Netlify Identity Widget -->
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <script>
+        // Initialize Netlify Identity
+        if (window.netlifyIdentity) {
+            window.netlifyIdentity.on("init", user => {
+                if (user) {
+                    // User is already logged in, redirect to admin panel
+                    window.location.href = "/react-app/index.html";
+                }
+            });
+
+            window.netlifyIdentity.on("login", () => {
+                // User logged in successfully, redirect to admin panel
+                window.location.href = "/react-app/index.html";
+            });
+        }
+    </script>
+</body>
+</html>

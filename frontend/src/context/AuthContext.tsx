@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Initialize Netlify Identity with proper configuration
     netlifyIdentity.init({
-      APIUrl: 'https://gberlin.netlify.app/.netlify/identity'
+      APIUrl: `${window.location.origin}/.netlify/identity`
     });
 
     // Check for existing user on mount

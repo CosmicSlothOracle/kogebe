@@ -1144,6 +1144,22 @@
 
     <!-- Arrow images nicht verwenden -->
     <style>.section-arrow{display:none!important;}</style>
+
+    <!-- Netlify Identity Widget -->
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <script>
+        // Initialize Netlify Identity
+        if (window.netlifyIdentity) {
+            window.netlifyIdentity.on("init", user => {
+                if (!user) {
+                    window.netlifyIdentity.on("login", () => {
+                        document.location.href = "/admin";
+                    });
+                }
+            });
+        }
+    </script>
+
     <!-- Load React Events bundle and mount -->
     <script defer src="react/kosge-events.js" onload="window.mountKosgeEvents && window.mountKosgeEvents('#participate-root')"></script>
 </body>

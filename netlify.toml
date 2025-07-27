@@ -1,38 +1,31 @@
 [build]
-  command = "npm --prefix frontend install && npm --prefix frontend run build && npm --prefix netlify/functions install"
   publish = "docs"
+  command = "npm --prefix frontend install && npm --prefix frontend run build && npm --prefix netlify/functions install"
 
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+[dev]
+  command = "npm --prefix frontend run dev"
+  port = 8888
+  targetPort = 3000
+  autoLaunch = true
 
+# API redirects - all functions accessible
 [[redirects]]
-  from = "/api/participants"
-  to = "/.netlify/functions/participants"
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
   status = 200
-[[redirects]]
-  from = "/api/banners/*"
-  to = "/.netlify/functions/banners/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/api/banners"
-  to = "/.netlify/functions/banners"
-  status = 200
-
-[[redirects]]
-  from = "/api/events*"
-  to = "/.netlify/functions/events/:splat"
-  status = 200
+  force = true
 
 # Admin panel redirect
 [[redirects]]
   from = "/admin"
-  to = "/react-app/index.html"
+  to = "/admin.html"
   status = 200
 
-# Keep SPA redirect last
+# SPA redirect - keep last
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -40,8 +33,7 @@
 
 [build.environment]
   # Disable secret scanning for the Groq API key written to the chatbotKey.js file
-  SECRETS_SCAN_OMIT_KEYS = "GROQ_API_KEY"  # allow this env var to appear in build output
-  # Alternatively you could disable scanning entirely with SECRETS_SCAN_ENABLED = "false"
+  SECRETS_SCAN_OMIT_KEYS = "GROQ_API_KEY"
 
 [context.production.environment]
   # Netlify Identity settings
